@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#160d25">
+  <meta name="description" content="EMMANUEL AI — Your Intelligence. Your Assistant. Your Future.">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <title>EMMANUEL AI</title>
+  <style>
+    :root{color-scheme:dark;--bg:#100a19;--panel:#1b1228;--panel2:#241735;--purple:#a855f7;--lav:#d8b4fe;--muted:#b7a9c8}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#2a1640 0,#100a19 55%);color:#f8f4ff;font:16px/1.5 system-ui,Segoe UI,sans-serif;min-height:100vh}
+    .shell{max-width:900px;margin:auto;padding:22px 16px 30px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+    .brand{display:flex;align-items:center;gap:12px}.orb{width:44px;height:44px;border-radius:15px;background:linear-gradient(135deg,#7e22ce,#c084fc);display:grid;place-items:center;font-size:23px;box-shadow:0 0 30px #9333ea66}
+    h1{font-size:20px;letter-spacing:.08em;margin:0;color:var(--lav)}.tag{font-size:11px;color:var(--muted);letter-spacing:.12em}
+    .status{font-size:12px;color:#d8b4fe;background:#321b49;border:1px solid #63358b;padding:6px 10px;border-radius:999px}
+    .intro{text-align:center;padding:25px 12px 20px}.intro h2{font-size:clamp(27px,6vw,43px);line-height:1.1;margin:0 0 10px}.intro p{color:var(--muted);margin:0}
+    .toolbar{display:flex;flex-wrap:wrap;gap:9px;margin:18px 0}.toolbar label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:7px;background:var(--panel);padding:8px 11px;border-radius:12px;border:1px solid #3a2850}
+    select,button,textarea{font:inherit}select{color:#fff;background:#2a1b3b;border:1px solid #54376f;border-radius:8px;padding:6px}
+    .chat{height:min(52vh,520px);min-height:300px;overflow:auto;background:#170f22cc;border:1px solid #3b2850;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:13px}
+    .msg{max-width:85%;padding:12px 14px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere}.bot{align-self:flex-start;background:var(--panel2);border:1px solid #49305f}.user{align-self:flex-end;background:linear-gradient(135deg,#6b21a8,#9333ea)}
+    .composer{display:flex;gap:9px;margin-top:12px}.composer textarea{flex:1;resize:vertical;min-height:54px;max-height:150px;background:#1b1228;color:#fff;border:1px solid #49305f;border-radius:15px;padding:14px;outline:none}
+    button{border:0;border-radius:13px;padding:0 18px;background:linear-gradient(135deg,#9333ea,#6b21a8);color:white;font-weight:700;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
+    .small{font-size:12px;color:var(--muted);text-align:center;margin-top:12px}.actions{display:flex;gap:8px}.ghost{background:#2a1b3b;border:1px solid #54376f;padding:8px 11px;font-size:13px}
+    @media(max-width:540px){.shell{padding:15px 11px}.top{align-items:flex-start}.composer button{padding:0 13px}.msg{max-width:94%}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="top">
+      <div class="brand"><div class="orb">✦</div><div><h1>EMMANUEL AI</h1><div class="tag">YOUR INTELLIGENCE. YOUR FUTURE.</div></div></div>
+      <span class="status" id="status">Checking AI…</span>
+    </header>
+    <section class="intro"><h2>Your AI assistant,<br><span style="color:#c084fc">your way.</span></h2><p>Ask questions, learn new things, and explore ideas.</p></section>
+    <section class="toolbar" aria-label="Assistant settings">
+      <label>Personality <select id="personality"><option value="friendly">Friendly</option><option value="professional">Professional</option><option value="genius">Genius</option></select></label>
+      <label>AI engine <select id="provider"><option value="auto">Automatic</option><option value="openai">OpenAI first</option><option value="gemini">Gemini first</option></select></label>
+      <div class="actions"><button class="ghost" id="voice">🎙️ Speak</button><button class="ghost" id="read">🔊 Read last answer</button></div>
+    </section>
+    <section class="chat" id="chat" aria-live="polite">
+      <div class="msg bot">Hello! I'm EMMANUEL AI. What would you like to learn or ask today?</div>
+    </section>
+    <form class="composer" id="form"><textarea id="prompt" placeholder="Type your question here…" aria-label="Your question"></textarea><button id="send" type="submit">Send</button></form>
+    <p class="small">This starter can run in demo mode. Add API keys on the server to enable live AI answers. Never share your passwords or API keys in chat.</p>
+  </main>
+  <script>
+    const chat=document.getElementById('chat'), form=document.getElementById('form'), promptBox=document.getElementById('prompt'), send=document.getElementById('send');
+    const history=[]; let lastAnswer='';
+    function bubble(text,who){const el=document.createElement('div');el.className='msg '+who;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;return el}
+    async function checkStatus(){try{const r=await fetch('/api/status');const s=await r.json();document.getElementById('status').textContent=s.mode==='live'?'AI connected':'Demo mode'}catch{document.getElementById('status').textContent='Offline'}}
+    form.addEventListener('submit',async e=>{e.preventDefault();const text=promptBox.value.trim();if(!text)return;promptBox.value='';bubble(text,'user');history.push({role:'user',content:text});send.disabled=true;send.textContent='…';const wait=bubble('Thinking…','bot');
+      try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:history.slice(-20),personality:document.getElementById('personality').value,provider:document.getElementById('provider').value})});const data=await r.json();wait.remove();if(!r.ok)throw new Error(data.error||'Request failed');lastAnswer=data.reply;history.push({role:'assistant',content:data.reply});bubble(data.reply,'bot');document.getElementById('status').textContent=data.provider==='demo'?'Demo mode':`Connected: ${data.provider}`;}
+      catch(err){wait.remove();bubble(err.message,'bot')}finally{send.disabled=false;send.textContent='Send';promptBox.focus()}
+    });
+    document.getElementById('voice').addEventListener('click',()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){bubble('Voice input is not supported by this browser. Try a recent version of Chrome.','bot');return}const rec=new SR();rec.lang='en-NG';rec.onresult=e=>{promptBox.value=e.results[0][0].transcript;promptBox.focus()};rec.start()});
+    document.getElementById('read').addEventListener('click',()=>{if(!lastAnswer){bubble('There is no answer to read yet.','bot');return}if(!('speechSynthesis'in window)){bubble('Speech output is not supported in this browser.','bot');return}speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(lastAnswer))});
+    checkStatus(); if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  </script>
+</body>
+</html>
